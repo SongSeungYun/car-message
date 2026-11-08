@@ -1,0 +1,15 @@
+# 공개 저장소에 올리지 않는 팀 내부 자료 (실명·내부 링크 포함)
+*.pdf
+link.txt
+
+# OS / IDE
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# Gradle / Android
+.gradle/
+build/
+local.properties
+.kotlin/

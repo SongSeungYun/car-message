@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "triggers": ["HAZARD", "TURN_LEFT", "TURN_RIGHT", "BUTTON"],
+  "messages": [
+    { "code": "FRONT_INCIDENT", "text": "전방 특이사항 발생",  "trigger": "HAZARD", "prio": "principal" },
+    { "code": "BREAKDOWN",      "text": "차량 고장",          "trigger": "HAZARD", "prio": "principal" },
+    { "code": "REVERSING",      "text": "후진합니다",          "trigger": "HAZARD", "prio": "principal" },
+    { "code": "HELP",           "text": "도와주세요",          "trigger": "HAZARD", "prio": "principal" },
+    { "code": "PASSENGER_EXIT", "text": "사람 하차합니다",      "trigger": "HAZARD", "prio": "principal" },
+    { "code": "BRIEF_STOP",     "text": "잠시 정차 중입니다",   "trigger": "HAZARD", "prio": "additional" },
+    { "code": "THANKS",         "text": "감사합니다",          "trigger": "HAZARD", "prio": "additional" },
+    { "code": "SORRY",          "text": "죄송합니다",          "trigger": "HAZARD", "prio": "additional" },
+    { "code": "PARKING",        "text": "주차 중입니다",        "trigger": "HAZARD", "prio": "additional" },
+    { "code": "SLOW_DOWN",      "text": "서행합니다",          "trigger": "HAZARD", "prio": "additional" },
+
+    { "code": "LEFT_TURN",      "text": "좌회전합니다",         "trigger": "TURN_LEFT",  "prio": "principal" },
+    { "code": "U_TURN",         "text": "유턴합니다",          "trigger": "TURN_LEFT",  "prio": "principal" },
+    { "code": "DEPART",         "text": "출발합니다",          "trigger": "TURN_LEFT",  "prio": "principal" },
+    { "code": "PULL_OVER",      "text": "정차합니다",          "trigger": "TURN_RIGHT", "prio": "principal" },
+
+    { "code": "SIGNAL_CHANGED", "text": "신호 바뀌었습니다",    "trigger": "BUTTON", "prio": "principal" },
+    { "code": "CHECK_VEHICLE",  "text": "차량 고장 확인 바람",  "trigger": "BUTTON", "prio": "principal" },
+    { "code": "YIELD_PLEASE",   "text": "양보 부탁드립니다",    "trigger": "BUTTON", "prio": "additional" },
+    { "code": "DANGER",         "text": "위험합니다",          "trigger": "BUTTON", "prio": "additional" },
+    { "code": "OVERTAKING",     "text": "추월하겠습니다",       "trigger": "BUTTON", "prio": "additional" },
+    { "code": "I_YIELD",        "text": "제가 양보하겠습니다",  "trigger": "BUTTON", "prio": "additional" },
+    { "code": "MOVE_FORWARD",   "text": "앞으로 조금만 가주세요", "trigger": "BUTTON", "prio": "additional" }
+  ]
+}
