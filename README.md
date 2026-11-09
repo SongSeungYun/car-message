@@ -21,7 +21,8 @@
 
 ```bash
 cd be
-./gradlew run          # ws://localhost:8080/ws/{vehicleId}
+./gradlew run              # ws://localhost:8080/ws/{vehicleId}
+PORT=18080 ./gradlew run   # 8080이 이미 쓰이고 있을 때
 ./gradlew test
 ```
 
@@ -33,6 +34,8 @@ TODO
 
 - Pleos Connect Emulator 2대 (A차, B차) — 같은 APK
 - 에뮬레이터에서 서버 주소: `ws://10.0.2.2:8080/ws/A`, `ws://10.0.2.2:8080/ws/B`
+  (서버와 에뮬레이터가 같은 맥일 때. 맥북 2대로 시연할 때는 AWS 서버 주소)
+- 앱은 `ws://` 허용 설정이 필요하다 — [`docs/protocol.md`](docs/protocol.md#접속) 참고
 - TODO: Virtual Console 설정, 필요한 권한
 
 ## APK

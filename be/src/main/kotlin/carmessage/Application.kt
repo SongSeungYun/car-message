@@ -25,6 +25,7 @@ fun Application.module(ackTimeout: Duration = 3.seconds) {
     install(WebSockets) {
         pingPeriod = 15.seconds
         timeout = 15.seconds
+        maxFrameSize = 64 * 1024L // 넘으면 연결을 끊는다. 공개 서버라 메모리 보호
     }
     val relay = Relay(this, ackTimeout)
 

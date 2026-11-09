@@ -7,6 +7,7 @@ import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.ktor.websocket.Frame
+import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
@@ -89,6 +90,22 @@ class RelayTest {
         b.out("""{"type":"ack","id":"m1"}""")
         assertEquals("delivered", a.recv().s("state"))
 
+        a.out("""{"type":"send","id":"m1","code":"U_TURN"}""")
+        assertEquals("delivered", a.recv().s("state"))
+        b.nothing()
+    }
+
+    @Test
+    fun `보낸 차량이 끊긴 사이 도착했으면 재접속 후 재전송에 delivered만`() = relayTest { client ->
+        var a = client.car("A")
+        val b = client.car("B")
+        a.out("""{"type":"send","id":"m1","code":"U_TURN"}""")
+        b.recv()
+        a.close()
+        delay(50)
+        b.out("""{"type":"ack","id":"m1"}""")
+
+        a = client.car("A")
         a.out("""{"type":"send","id":"m1","code":"U_TURN"}""")
         assertEquals("delivered", a.recv().s("state"))
         b.nothing()

@@ -7,6 +7,7 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -35,18 +36,19 @@ class Relay(private val scope: CoroutineScope, private val ackTimeout: Duration)
     }
 
     suspend fun connect(vehicleId: String, session: WebSocketSession) {
-        sessions.put(vehicleId, session)?.close(CloseReason(CloseReason.Codes.NORMAL, "replaced"))
+        sessions.put(vehicleId, session)?.let { old ->
+            log.info("replace {}", vehicleId) // 두 앱이 같은 ID를 쓰면 이 로그가 반복된다
+            old.close(CloseReason(CloseReason.Codes.NORMAL, "replaced"))
+            old.cancel() // 망이 죽은 연결은 close 응답이 없어 안 끊기므로 강제로 끊는다
+        }
         log.info("connect {}", vehicleId)
         try {
             for (frame in session.incoming) {
                 if (frame is Frame.Text) handle(vehicleId, frame.readText())
             }
         } finally {
+            // 대기 중 메시지는 지우지 않는다: 재접속하면 결과가 새 연결로 가고, 아니면 타이머가 치운다 (protocol.md 흐름 6)
             sessions.remove(vehicleId, session)
-            // 끊긴 차량이 보낸 메시지는 결과를 받을 곳이 없으니 버린다 (protocol.md 흐름 6)
-            lock.withLock {
-                pending.entries.removeIf { (_, p) -> (p.from == vehicleId).also { if (it) p.timer?.cancel() } }
-            }
             log.info("disconnect {}", vehicleId)
         }
     }
