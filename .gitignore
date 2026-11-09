@@ -13,3 +13,7 @@ link.txt
 build/
 local.properties
 .kotlin/
+
+# 앱 서명 키 (공개 저장소)
+*.jks
+*.keystore
