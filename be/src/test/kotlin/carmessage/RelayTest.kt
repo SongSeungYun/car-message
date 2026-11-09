@@ -59,6 +59,19 @@ class RelayTest {
     }
 
     @Test
+    fun `to가 all이면 나를 뺀 전원에게`() = relayTest { client ->
+        val a = client.car("A")
+        val b = client.car("B")
+        val c = client.car("C")
+        a.out("""{"type":"send","id":"m1","code":"DEPART","to":"all"}""")
+        assertEquals("A", b.recv().s("from"))
+        assertEquals("A", c.recv().s("from"))
+
+        b.out("""{"type":"ack","id":"m1"}""")
+        assertEquals("delivered", a.recv().s("state")) // A 자신에게 msg가 갔다면 여기서 깨진다
+    }
+
+    @Test
     fun `받을 차량이 없으면 NO_TARGET`() = relayTest { client ->
         val a = client.car("A")
         a.out("""{"type":"send","id":"m1","code":"U_TURN"}""")

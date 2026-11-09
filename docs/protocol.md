@@ -9,7 +9,7 @@
 ws://<host>:8080/ws/{vehicleId}
 ```
 
-- `vehicleId`: 차량 가명 ID. 1차 시연은 `A`, `B`.
+- `vehicleId`: 차량 가명 ID. 1차 시연은 `A`, `B`. `all`은 전원 전송용이라 쓸 수 없다.
 - 로컬 개발: 에뮬레이터에서 `ws://10.0.2.2:8080/ws/A`. **서버와 에뮬레이터가 같은 맥일 때만** 된다.
   다른 맥이면 서버 맥의 LAN IP, 시연은 AWS 서버 주소.
 - **Android 9+는 암호화 안 된 `ws://`를 기본 차단한다.** 1차는 `AndroidManifest.xml`에 아래 한 줄.
@@ -35,7 +35,7 @@ ws://<host>:8080/ws/{vehicleId}
 | `type` | `"send"` | O | |
 | `id` | string | O | 앱이 만든 UUID. **재전송할 때 같은 id를 쓴다**. 1, 2, 3 같은 카운터 금지 — 앱 재시작 후 예전 id와 겹치면 서버가 "이미 전달됨"으로 보고 전달하지 않는다 |
 | `code` | string | O | `messages.json`의 code. `^[A-Z_]{1,40}$` |
-| `to` | string | | 받을 차량 ID. 생략하면 나를 뺀 접속 차량 전원 |
+| `to` | string | | 받을 차량 ID. 생략하거나 `"all"`이면 나를 뺀 접속 차량 전원 |
 | `replyTo` | string | | 답장일 때 원래 메시지 id |
 
 ```json
@@ -137,7 +137,7 @@ B ─ send {id:"m2", code:"I_YIELD", to:"A", replyTo:"m1"} ─▶ 서버 ─ msg
 ## 범위 밖 (v1)
 
 인증, 메시지 저장, 주변 차량 검색(GPS 반경), Emergency Chain 릴레이.
-`to` 생략 = 전원 전송 규칙은 주변 차량 검색이 들어오면 "반경 내 차량"으로 바뀐다.
+`to` 생략(또는 `"all"`) = 전원 전송 규칙은 주변 차량 검색이 들어오면 "반경 내 차량"으로 바뀐다.
 
 ## 2차 PT(현장) 전에 정할 것
 

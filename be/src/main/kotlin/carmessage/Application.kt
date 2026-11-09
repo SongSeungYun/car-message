@@ -32,7 +32,7 @@ fun Application.module(ackTimeout: Duration = 3.seconds) {
     routing {
         webSocket("/ws/{vehicleId}") {
             val id = call.parameters["vehicleId"].orEmpty()
-            if (!VEHICLE_ID.matches(id)) {
+            if (!VEHICLE_ID.matches(id) || id == BROADCAST) {
                 return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "bad vehicleId"))
             }
             relay.connect(id, this)

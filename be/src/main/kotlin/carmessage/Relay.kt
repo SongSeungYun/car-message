@@ -66,7 +66,8 @@ class Relay(private val scope: CoroutineScope, private val ackTimeout: Duration)
         if (m.id.isBlank() || m.id.length > MAX_ID || !CODE.matches(m.code)) {
             return sendTo(from, ErrorMsg(m.id, "BAD_FORMAT"))
         }
-        val targets = if (m.to != null) listOf(m.to).filter { it != from && sessions.containsKey(it) } else sessions.keys - from
+        val targets = if (m.to == null || m.to == BROADCAST) sessions.keys - from
+        else listOf(m.to).filter { it != from && sessions.containsKey(it) }
 
         val proceed = lock.withLock {
             when {

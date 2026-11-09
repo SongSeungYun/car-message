@@ -11,6 +11,9 @@ val json = Json {
     explicitNulls = false
 }
 
+/** `to`에 넣으면 생략과 같이 전원 전송. 그래서 차량 ID로는 못 쓴다 */
+const val BROADCAST = "all"
+
 /** 앱 → 서버 */
 @Serializable
 sealed interface Inbound
