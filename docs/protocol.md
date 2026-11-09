@@ -42,7 +42,7 @@ ws://<host>:8080/ws/{vehicleId}
 {"type":"send","id":"7f3a2c1e-...","code":"U_TURN"}
 ```
 
-**ack** — 받은 메시지 확인. `msg`를 받으면 화면에 띄운 직후 바로 보낸다.
+**ack** — 받은 메시지 확인. `msg`를 받으면 화면에 띄운 직후 바로 보낸다. 화면에 띄우지 않을 때(Additional 수신을 끈 차 등)도 보낸다. 안 보내면 보낸 쪽은 `TIMEOUT`을 받는다.
 
 ```json
 {"type":"ack","id":"7f3a2c1e-..."}
@@ -138,3 +138,12 @@ B ─ send {id:"m2", code:"I_YIELD", to:"A", replyTo:"m1"} ─▶ 서버 ─ msg
 
 인증, 메시지 저장, 주변 차량 검색(GPS 반경), Emergency Chain 릴레이.
 `to` 생략 = 전원 전송 규칙은 주변 차량 검색이 들어오면 "반경 내 차량"으로 바뀐다.
+
+## 2차 PT(현장) 전에 정할 것
+
+- 서버에 인증이 없고 이 저장소는 공개다. 누가 같은 `vehicleId`로 접속하면 기존 연결이 끊긴다(`replaced`).
+  현장 AWS 서버에서는 추측하기 어려운 `vehicleId` 또는 접속 토큰을 쓴다. 방식은 미정.
+
+## 이 문서 밖
+
+비상등·핸들 버튼·음성(맥 음성 브리지)처럼 앱이 서버가 아닌 쪽과 주고받는 신호는 [`device-signals.md`](device-signals.md).

@@ -16,7 +16,9 @@
     { "code": "LEFT_TURN",      "text": "좌회전합니다",         "trigger": "TURN_LEFT",  "prio": "principal" },
     { "code": "U_TURN",         "text": "유턴합니다",          "trigger": "TURN_LEFT",  "prio": "principal" },
     { "code": "DEPART",         "text": "출발합니다",          "trigger": "TURN_LEFT",  "prio": "principal" },
+    { "code": "RIGHT_TURN",     "text": "우회전합니다",         "trigger": "TURN_RIGHT", "prio": "principal" },
     { "code": "PULL_OVER",      "text": "정차합니다",          "trigger": "TURN_RIGHT", "prio": "principal" },
+    { "code": "LANE_CHANGE",    "text": "차로 변경하겠습니다",   "trigger": "TURN_RIGHT", "prio": "principal" },
 
     { "code": "SIGNAL_CHANGED", "text": "신호 바뀌었습니다",    "trigger": "BUTTON", "prio": "principal" },
     { "code": "CHECK_VEHICLE",  "text": "차량 고장 확인 바람",  "trigger": "BUTTON", "prio": "principal" },

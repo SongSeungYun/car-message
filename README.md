@@ -19,7 +19,7 @@ A차 앱 ◀─ status ─ 중계 서버 ◀─ ack ─── B차 앱
 
 ```
 car-message/
-├── fe/                       Pleos Connect 앱 (Android, Kotlin) — 앱 담당이 생성 예정
+├── fe/                       Pleos Connect 앱 (Android, Kotlin, 패키지명 com.carmessage.app) — 앱 담당이 생성 예정
 ├── be/                       메시지 중계 서버 (Kotlin, Ktor)
 │   └── src/main/kotlin/carmessage/
 │       ├── Application.kt    서버 시작, /ws/{vehicleId} 접속 처리
@@ -27,7 +27,10 @@ car-message/
 │       └── Relay.kt          중계 로직 (ack 3초 대기, 재전송, 답장)
 ├── docs/
 │   ├── protocol.md           앱 ↔ 서버 규약 ← 앱 개발 전에 필독
-│   └── messages.json         메시지 코드표 (코드 → 문구, 트리거)
+│   ├── messages.json         메시지 코드표 (코드 → 문구, 트리거)
+│   └── device-signals.md     앱 ↔ 차량 신호·맥 음성 브리지 (adb, STM32)
+├── bridge/                   맥 음성 브리지: STM32 버튼·음성 인식·읽기 (예정)
+├── firmware/                 STM32 핸들 버튼 (예정)
 ├── infra/                    서버 배포 (예정)
 └── apk/                      제출용 release APK
 ```
@@ -50,7 +53,7 @@ Gradle·Kotlin·Ktor는 따로 설치하지 않는다. `./gradlew`가 처음 실
 
 1. [developers.pleos.ai](https://developers.pleos.ai) 가입 → Pleos Playground에서 프로젝트 생성
 2. Vehicle SDK(방향지시등 조회)·NaviHelper SDK는 신청 없이 바로 사용 가능
-3. TTS·STT SDK는 아직 "준비 중" → 1차는 안드로이드 기본 `TextToSpeech` 사용
+3. TTS·STT SDK는 콘솔에 아직 "준비 중"이고, 에뮬레이터에서는 엔진 오류(`ON_DEVICE_ENGINE_ERROR`)가 난다 → 시연은 맥 음성 브리지가 듣고 읽는다 ([`docs/device-signals.md`](docs/device-signals.md)). 실차용으로는 Pleos STT·TTS 구현을 같이 두고 설정값 `VOICE_ENGINE`으로 고른다
 4. 에뮬레이터 설치, Virtual Console(차량 신호 시뮬레이션) 사용법은 같은 사이트 가이드를 따른다
 
 ## 시작하기
@@ -110,9 +113,10 @@ ws.send(JSON.stringify({ type: 'send', id: 'b-' + Date.now(), code: 'I_YIELD', t
 기준 문서는 [`docs/protocol.md`](docs/protocol.md)다. 특히 아래는 어기면 메시지가 사라지거나 계속 실패한다.
 
 - 메시지 `id`는 `UUID.randomUUID()`로 만든다. 1, 2, 3 같은 번호는 금지
-- `msg`를 받으면 화면에 띄운 직후 `ack`를 보낸다. **같은 메시지가 두 번 와도 ack는 보낸다** (화면엔 한 번만)
+- `msg`를 받으면 화면에 띄운 직후 `ack`를 보낸다. **같은 메시지가 두 번 와도, Additional 수신을 꺼서 화면에 안 띄워도 ack는 보낸다** (화면엔 한 번만)
 - 끊기면 재접속한다 (1s → 2s → 4s … 최대 10s). "전송 중"이던 메시지는 **같은 id로** 다시 보낸다
 - 문구는 서버가 아니라 `messages.json`에서 꺼낸다
+- 앱 패키지명은 `com.carmessage.app`. 비상등·핸들 버튼·음성 신호는 [`docs/device-signals.md`](docs/device-signals.md)
 
 ## 협업 규칙
 
