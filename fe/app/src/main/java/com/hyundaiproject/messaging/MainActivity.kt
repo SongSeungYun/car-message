@@ -29,7 +29,6 @@ class MainActivity : Activity() {
         board.onPage = controller::showPage
         board.onConfirm = controller::confirm
         board.onCancel = controller::cancelConfirmation
-        board.onRetry = controller::openRetry
         board.onDismissAlert = controller::dismissAlert
         board.onDemo = ::showDemoMenu
         setContentView(board)
@@ -38,17 +37,22 @@ class MainActivity : Activity() {
 
     private fun showDemoMenu(anchor: View) {
         val screen = controller.screen()
+        val canSelectMessage = screen.phase() == Phase.IDLE && screen.alert() == null
         val popup = PopupMenu(this, anchor)
         val menu = popup.menu
-        if (screen.phase() == Phase.IDLE && screen.alert() == null) {
-            menu.add("Flow 1 · 비상등 메시지").setOnMenuItemClickListener {
-                controller.showPage(Page.MAIN)
-                true
-            }
-            menu.add("Flow 2 · 좌회전 메시지").setOnMenuItemClickListener {
-                controller.showPage(Page.TURN)
-                true
-            }
+        menu.add("Flow 1 · 메시지 송신").setOnMenuItemClickListener {
+            restartDemo(Page.HOME)
+            true
+        }
+        menu.add("Flow 2 · 경고 수신").setOnMenuItemClickListener {
+            showDemoAlert(Kind.CRITICAL)
+            true
+        }
+        menu.add("Flow 3 · 일반 알림 수신").setOnMenuItemClickListener {
+            showDemoAlert(Kind.NOTICE)
+            true
+        }
+        if (canSelectMessage) {
             menu.add("음성 인식 시연").setOnMenuItemClickListener {
                 val number = if (screen.page() == Page.ADDITIONAL) 6 else 1
                 controller.startListening()
@@ -65,15 +69,18 @@ class MainActivity : Activity() {
         }
         menu.add("다음 전송 결과 · 성공").setOnMenuItemClickListener { setDemoResult(Result.SUCCESS) }
         menu.add("다음 전송 결과 · 실패").setOnMenuItemClickListener { setDemoResult(Result.FAILURE) }
-        menu.add("Flow 3 · 경고 수신").setOnMenuItemClickListener {
-            gateway.emit(Kind.CRITICAL)
-            true
-        }
-        menu.add("Flow 4 · 일반 알림 수신").setOnMenuItemClickListener {
-            gateway.emit(Kind.NOTICE)
-            true
-        }
         popup.show()
+    }
+
+    private fun showDemoAlert(kind: Kind) {
+        restartDemo(Page.MAIN)
+        gateway.emit(kind)
+    }
+
+    private fun restartDemo(startPage: Page) {
+        handler.removeCallbacksAndMessages(null)
+        gateway.nextResult = Result.SUCCESS
+        controller.resetForDemo(startPage)
     }
 
     private fun setDemoResult(result: Result): Boolean {

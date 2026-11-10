@@ -1,6 +1,8 @@
 package com.hyundaiproject.messaging
 
 import android.animation.ObjectAnimator
+import android.animation.PropertyValuesHolder
+import android.animation.StateListAnimator
 import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.ColorStateList
@@ -13,18 +15,21 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RenderEffect
 import android.graphics.Shader
-import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
+import android.graphics.drawable.StateListDrawable
 import android.os.Build
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.PointerIcon
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import com.hyundaiproject.messaging.MessageCatalog.Page
 import com.hyundaiproject.messaging.MessageCatalog.Preset
@@ -34,12 +39,17 @@ import com.hyundaiproject.messaging.MessagingController.Screen
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+private const val REGULAR = 400
+private const val MEDIUM = 500
+private const val SEMI_BOLD = 600
+private const val BOLD = 700
+private const val EXTRA_BOLD = 800
+
 internal class MessageBoard(context: Context) : FrameLayout(context) {
     var onSelect: (Preset) -> Unit = {}
     var onPage: (Page) -> Unit = {}
     var onConfirm: () -> Unit = {}
     var onCancel: () -> Unit = {}
-    var onRetry: () -> Unit = {}
     var onDismissAlert: () -> Unit = {}
     var onDemo: (View) -> Unit = {}
 
@@ -52,8 +62,20 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
     private val red = Color.rgb(230, 51, 18)
     private val ink = Color.rgb(18, 20, 23)
     private val paper = Color.rgb(247, 248, 250)
+    private val muted = Color.rgb(217, 217, 217)
     private val hairline = 0x33131417
     private val white = Color.WHITE
+    private val highlightStates = arrayOf(
+        intArrayOf(android.R.attr.state_hovered),
+        intArrayOf(android.R.attr.state_focused),
+    )
+    private val messageTextColors = ColorStateList(
+        arrayOf(*highlightStates, intArrayOf()), intArrayOf(navy, navy, ink),
+    )
+    private val messagePressRipple = ColorStateList(
+        arrayOf(intArrayOf(android.R.attr.state_pressed), intArrayOf()),
+        intArrayOf(0x26002C5F, Color.TRANSPARENT),
+    )
 
     fun render(next: Screen) {
         screen = next
@@ -82,7 +104,11 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
         clipToOutline = true
 
         val list = layer(this)
-        drawList(list, state, portrait, w, h)
+        if (state.page() == Page.HOME) {
+            drawHome(list, portrait, w, h)
+        } else {
+            drawList(list, state, portrait, w, h)
+        }
         val sendPanel = if (state.phase() != Phase.IDLE) {
             dim(list)
             val panel = layer(this)
@@ -101,13 +127,89 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
             dim(sendPanel ?: list)
             alert(layer(this), incoming, state.alternateGlow(), w, h)
         } else {
-            val demo = label("시연 ⋮", u(32).coerceAtLeast(sp(12f)), navy, Gravity.CENTER, 700)
+            val demo = label("시연 ⋮", u(32).coerceAtLeast(sp(12f)), navy, weight = BOLD)
             demo.background = rounded(0xEDF7F8FA.toInt(), u(36), hairline)
             action(demo, "시연 메뉴") { onDemo(demo) }
             val demoW = u(174).coerceAtLeast(dp(76f))
             val demoH = u(68).coerceAtLeast(dp(48f))
-            place(this, demo, w - demoW - u(38), u(23), demoW, demoH)
+            val demoInset = if (state.page() == Page.HOME) {
+                w * (49f / 1700f) + u(50) + u(48).coerceAtLeast(dp(22f)) + dp(8f)
+            } else u(38)
+            place(this, demo, w - demoW - demoInset, u(23), demoW, demoH)
         }
+    }
+
+    private fun drawHome(parent: FrameLayout, portrait: Boolean, w: Float, h: Float) {
+        val left = w * (49f / 1700f)
+        val top = h * (203f / 1194f)
+        val headerInset = left + u(50)
+        val logoWidth = u(300).coerceAtLeast(dp(152f)).coerceAtMost(w * 0.58f)
+        val logoHeight = u(57).coerceAtLeast(dp(24f))
+        val logoPlaceholder = label("로고 이미지 파일 들어갈 자리입니다", u(20).coerceAtLeast(sp(9f)),
+            Color.BLACK, Gravity.START or Gravity.CENTER_VERTICAL, REGULAR).apply {
+            background = ColorDrawable(muted)
+            val textWidth = paint.measureText(text.toString())
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize * min(1f, logoWidth / textWidth))
+            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+        }
+        place(parent, logoPlaceholder, headerInset, h * (103.45f / 1194f), logoWidth, logoHeight)
+        val exitIconSize = u(48).coerceAtLeast(dp(22f))
+        place(parent, bitmap("exit-to-app"), w - headerInset - exitIconSize,
+            h * (107.95f / 1194f), exitIconSize, exitIconSize)
+
+        val cards = LinearLayout(context).apply {
+            orientation = if (portrait) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
+        }
+        val gap = u(25).roundToInt()
+        val entries = listOf(
+            "principal\nmessages" to Page.MAIN,
+            // The second home card opens the turn-signal list in the prototype.
+            "additional\nmessages" to Page.TURN,
+            "설정" to null,
+        )
+        entries.forEachIndexed { index, (text, destination) ->
+            val params = if (portrait) {
+                LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f)
+            } else {
+                LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f)
+            }
+            if (index > 0) {
+                if (portrait) params.topMargin = gap else params.leftMargin = gap
+            }
+            cards.addView(homeTile(text, destination, portrait), params)
+        }
+        place(parent, cards, left, top, w - 2 * left, h * (930f / 1194f))
+    }
+
+    private fun homeTile(text: String, destination: Page?, portrait: Boolean): View {
+        val tile = FrameLayout(context)
+        val active = destination != null
+        val primary = destination == Page.MAIN
+        val surface = rounded(if (active) navy else muted, u(32), hairline)
+        tile.background = if (active) RippleDrawable(ColorStateList.valueOf(0x30FFFFFF), surface, null) else surface
+        val titleGravity = Gravity.START or (if (portrait) Gravity.CENTER_VERTICAL else Gravity.TOP)
+        val title = label(text, u(48).coerceAtLeast(sp(14f)), if (active) white else Color.BLACK, titleGravity, BOLD)
+        title.maxLines = 2
+        val arrow = if (active) shadedLabel("→", u(128)) else label("→", u(128), Color.BLACK, weight = BOLD)
+        arrow.gravity = Gravity.CENTER
+
+        val titleHeight = if (portrait) LayoutParams.MATCH_PARENT else u(140).roundToInt()
+        tile.addView(title, LayoutParams(LayoutParams.MATCH_PARENT, titleHeight).apply {
+            leftMargin = u(if (primary) 50 else 57).roundToInt()
+            rightMargin = u(if (portrait) 210 else 36).roundToInt()
+            if (!portrait) topMargin = u(if (primary) 72 else 61).roundToInt()
+        })
+        val arrowGravity = Gravity.END or (if (portrait) Gravity.CENTER_VERTICAL else Gravity.BOTTOM)
+        tile.addView(arrow, LayoutParams(u(140).roundToInt(), u(160).roundToInt(), arrowGravity).apply {
+            rightMargin = u(35).roundToInt()
+            if (!portrait) bottomMargin = u(20).roundToInt()
+        })
+        if (destination != null) {
+            action(tile, text.replace('\n', ' ')) { onPage(destination) }
+        } else {
+            title.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+        }
+        return tile
     }
 
     private fun drawList(parent: FrameLayout, state: Screen, portrait: Boolean, w: Float, h: Float) {
@@ -129,7 +231,8 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
         }
         val title = label(
             if (turn) "좌회전 방향지시등 작동 중" else "비상등 작동 중",
-            u(40).coerceAtLeast(sp(14f)), ink, Gravity.START or Gravity.CENTER_VERTICAL, if (turn) 800 else 700,
+            u(40).coerceAtLeast(sp(14f)), ink, Gravity.START or Gravity.CENTER_VERTICAL,
+            if (turn) EXTRA_BOLD else BOLD,
         )
         title.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         place(parent, title, left, top - u(81), w - 2 * left, u(66))
@@ -141,31 +244,59 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
             val tile = if (navigation) navTile(extra, tileW, tileH) else {
                 val preset = presets[index - if (extra) 1 else 0]
                 val recognized = state.phase() == Phase.IDLE && state.voiceText() != null && state.selected() == preset
-                messageTile(preset, tileW, tileH, recognized, page == Page.MAIN && preset.number() == 1)
+                messageTile(preset, tileW, tileH, recognized, page)
             }
             place(parent, tile, x, y, tileW, tileH)
         }
     }
 
-    private fun messageTile(preset: Preset, w: Float, h: Float, recognized: Boolean, figmaSelected: Boolean): View {
+    private fun messageTile(preset: Preset, w: Float, h: Float, recognized: Boolean, page: Page): View {
         val tile = FrameLayout(context)
         tile.clipChildren = false
-        val border = if (recognized) navy else hairline
-        tile.background = RippleDrawable(ColorStateList.valueOf(0x26002C5F), cardSurface(border), null)
+        tile.pointerIcon = PointerIcon.getSystemIcon(context, PointerIcon.TYPE_HAND)
         tile.elevation = u(7)
-        if (recognized && figmaSelected && w / h in 1.1f..1.35f) {
-            val assetW = w * 550f / 470f
-            val assetH = assetW * 463f / 550f
-            place(tile, bitmap("selected-card"), (w - assetW) / 2f, (h - assetH) / 2f, assetW, assetH)
+        val showVoiceArtwork = recognized && page == Page.MAIN && preset.number() == 1 && w / h in 1.14f..1.35f
+        if (showVoiceArtwork) {
+            val cardScale = w / 470f
+            val assetW = 550.28f * cardScale
+            val assetH = 463.046f * cardScale
+            // The Figma card expands leftward and the exported shadow has extra padding below it.
+            place(tile, bitmap("selected-card"), (w - assetW) / 2f - 9f * cardScale,
+                (h - assetH) / 2f + 5f * cardScale, assetW, assetH)
         } else {
-            val number = if (recognized) label(preset.number().toString(), u(128), navy, Gravity.START, 700)
-                else shadedLabel(preset.number().toString(), u(128))
+            val surface = highlightedTileSurface(tile, if (recognized) navy else hairline)
+            tile.background = RippleDrawable(messagePressRipple, surface, null)
+            val number = if (recognized) label(preset.number().toString(), u(128), navy, Gravity.START, BOLD)
+                else shadedLabel(preset.number().toString(), u(128), highlightColor = navy)
             place(tile, number, u(44), u(26), w - u(70), u(164))
-            val text = label(preset.text(), u(48).coerceAtLeast(sp(14f)), ink, Gravity.END or Gravity.CENTER_VERTICAL, 700)
+            val text = label(preset.text(), u(48).coerceAtLeast(sp(14f)), ink, Gravity.END or Gravity.CENTER_VERTICAL, BOLD)
+            text.setTextColor(messageTextColors)
+            text.isDuplicateParentStateEnabled = true
             place(tile, text, u(30), h - u(116), w - u(70), u(86))
         }
         action(tile, "${preset.number()}번 ${preset.text()}") { onSelect(preset) }
         return tile
+    }
+
+    private fun highlightedTileSurface(tile: View, border: Int): StateListDrawable {
+        val surface = StateListDrawable()
+        val shadow = StateListAnimator()
+        fun animateHighlight(z: Float, scale: Float): ObjectAnimator = ObjectAnimator.ofPropertyValuesHolder(
+            tile,
+            PropertyValuesHolder.ofFloat(View.TRANSLATION_Z, z),
+            PropertyValuesHolder.ofFloat(View.SCALE_X, scale),
+            PropertyValuesHolder.ofFloat(View.SCALE_Y, scale),
+        ).setDuration(100)
+        for (state in highlightStates) {
+            surface.addState(state, rounded(white, u(32), navy))
+            shadow.addState(state, animateHighlight(u(16), 500f / 470f))
+        }
+        surface.addState(intArrayOf(), cardSurface(border))
+        shadow.addState(intArrayOf(), animateHighlight(0f, 1f))
+        tile.outlineAmbientShadowColor = navy
+        tile.outlineSpotShadowColor = navy
+        tile.stateListAnimator = shadow
+        return surface
     }
 
     private fun navTile(back: Boolean, w: Float, h: Float): View {
@@ -173,7 +304,7 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
         tile.background = RippleDrawable(ColorStateList.valueOf(0x30FFFFFF), rounded(navy, u(32)), null)
         tile.elevation = u(7)
         val text = label(if (back) "이전" else "additional\nmessages", u(48), white,
-            if (back) Gravity.END or Gravity.BOTTOM else Gravity.START or Gravity.TOP, 700)
+            if (back) Gravity.END or Gravity.BOTTOM else Gravity.START or Gravity.TOP, BOLD)
         text.maxLines = 2
         val arrow = shadedLabel(if (back) "←" else "→", u(128))
         arrow.gravity = if (back) Gravity.START or Gravity.CENTER_VERTICAL else Gravity.END or Gravity.CENTER_VERTICAL
@@ -188,9 +319,9 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
         val cardW = u(1256).coerceAtMost(w * 0.91f)
         val cardH = u(828)
         if (state.phase() == Phase.RETRY) {
-            place(card, label("재전송", u(48), ink), 0f, u(42), cardW, u(76))
+            place(card, label("재전송", u(48), ink, weight = SEMI_BOLD), 0f, u(42), cardW, u(76))
         }
-        val message = label(state.selected().text(), u(64), ink)
+        val message = label(state.selected().text(), u(64), ink, weight = SEMI_BOLD)
         message.maxLines = 2
         message.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         place(card, message, u(48), u(270), cardW - u(96), u(198))
@@ -218,7 +349,7 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
             repeatCount = ValueAnimator.INFINITE
             start()
         }
-        val message = label(state.selected().text(), u(64), ink)
+        val message = label(state.selected().text(), u(64), ink, weight = if (turn) MEDIUM else SEMI_BOLD)
         message.maxLines = 2
         place(card, message, u(48), u(if (turn) 518 else 445), cardW - u(96), u(158))
     }
@@ -237,11 +368,10 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
         val pillW = u(744).coerceAtMost(w * 0.88f)
         val pillH = u(188)
         glow(parent, (w - pillW) / 2, (h - pillH) / 2, pillW, pillH, u(100), u(52), white)
-        val status = label(if (success) "전송 완료" else "전송 실패", u(64), white, weight = 700)
+        val status = label(if (success) "전송 완료" else "전송 실패", u(64), white, weight = BOLD)
         status.background = rounded(if (success) navy else red, u(100))
         status.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         status.accessibilityLiveRegion = ACCESSIBILITY_LIVE_REGION_POLITE
-        if (!success) action(status, "전송 실패, 재전송 확인") { onRetry() }
         place(parent, status, (w - pillW) / 2, (h - pillH) / 2, pillW, pillH)
     }
 
@@ -251,7 +381,7 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
             (w - glowW) / 2f, -u(168), glowW, u(347))
         val pillW = u(310).coerceAtLeast(dp(120f)).coerceAtMost(w * 0.68f)
         val pillH = u(71).coerceAtLeast(dp(28f))
-        val pill = label(text, u(32).coerceAtLeast(sp(12f)), white)
+        val pill = label(text, u(32).coerceAtLeast(sp(12f)), white, weight = SEMI_BOLD)
         pill.background = rounded(0xFF5CBCD9.toInt(), pillH / 2f)
         pill.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         pill.accessibilityLiveRegion = ACCESSIBILITY_LIVE_REGION_POLITE
@@ -265,7 +395,7 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
                 (w - glowW) / 2f, -u(121), glowW, u(347))
             val bandH = u(247)
             glow(parent, 0f, (h - bandH) / 2, w, bandH, 0f, u(32), if (alternateGlow) red else white)
-            val band = label(message.text(), u(64), white)
+            val band = label(message.text(), u(64), white, weight = SEMI_BOLD)
             band.maxLines = 2
             band.background = rounded(red, 0f)
             band.accessibilityLiveRegion = ACCESSIBILITY_LIVE_REGION_ASSERTIVE
@@ -278,8 +408,8 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
             card.background = rounded(white, u(32), hairline)
             card.elevation = u(18)
             card.accessibilityLiveRegion = ACCESSIBILITY_LIVE_REGION_POLITE
-            val sender = label(message.maskedSender().orEmpty(), u(48), navy)
-            val text = label(message.text(), u(64), navy)
+            val sender = label(message.maskedSender().orEmpty(), u(48), navy, weight = SEMI_BOLD)
+            val text = label(message.text(), u(64), navy, weight = SEMI_BOLD)
             text.maxLines = 2
             text.background = rounded(white, u(32), hairline)
             place(card, sender, 0f, u(17), cardW, u(106))
@@ -290,14 +420,15 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
     }
 
     private fun dialogButton(text: String, backgroundColor: Int, color: Int, callback: () -> Unit): TextView {
-        val button = label(text, u(48).coerceAtLeast(sp(14f)), color, weight = 700)
+        val button = label(text, u(48).coerceAtLeast(sp(14f)), color, weight = BOLD)
         button.background = RippleDrawable(ColorStateList.valueOf(0x25000000), rounded(backgroundColor, u(22)), null)
         action(button, text, callback)
         return button
     }
 
-    private fun dim(view: View) {
+    private fun dim(view: FrameLayout) {
         view.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        view.descendantFocusability = FOCUS_BLOCK_DESCENDANTS
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val radius = u(12).coerceAtLeast(1f)
             view.setRenderEffect(RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP))
@@ -336,26 +467,37 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
         stroke?.let { setStroke(1, it) }
     }
 
-    private fun label(text: String, size: Float, color: Int, gravity: Int = Gravity.CENTER, weight: Int = 600) =
+    private fun label(text: String, size: Float, color: Int, gravity: Int = Gravity.CENTER, weight: Int) =
         TextView(context).apply { style(this, text, size, color, gravity, weight) }
 
-    private fun shadedLabel(text: String, size: Float) = object : TextView(context) {
+    private fun shadedLabel(text: String, size: Float, highlightColor: Int? = null) = object : TextView(context) {
         private val shading = LinearGradient(0f, 0f, size * 0.85f, size * 0.9f,
             intArrayOf(0xFF8E9397.toInt(), 0xFFEEF0F1.toInt(), 0xFFAAAFB2.toInt()),
             floatArrayOf(0f, 0.52f, 1f), Shader.TileMode.CLAMP)
 
+        override fun drawableStateChanged() {
+            super.drawableStateChanged()
+            if (highlightColor != null) invalidate()
+        }
+
         override fun onDraw(canvas: Canvas) {
-            paint.shader = shading
+            val highlighted = highlightColor != null && highlightStates.any { it[0] in drawableState }
+            paint.shader = if (highlighted) null else shading
             super.onDraw(canvas)
         }
-    }.apply { style(this, text, size, white, Gravity.START or Gravity.CENTER_VERTICAL, 700) }
+    }.apply {
+        style(this, text, size, highlightColor ?: white, Gravity.START or Gravity.CENTER_VERTICAL, BOLD)
+        if (highlightColor != null) isDuplicateParentStateEnabled = true
+    }
 
     private fun style(view: TextView, value: String, size: Float, color: Int, gravity: Int, weight: Int) {
         view.text = value
         view.setTextSize(TypedValue.COMPLEX_UNIT_PX, size.coerceAtLeast(1f))
         view.setTextColor(color)
         view.gravity = gravity
-        view.typeface = Typeface.create(font, weight, false)
+        view.typeface = font
+        view.setFontVariationSettings("'wght' $weight")
+        view.letterSpacing = 0f
         view.includeFontPadding = false
         view.ellipsize = TextUtils.TruncateAt.END
         view.maxLines = 1

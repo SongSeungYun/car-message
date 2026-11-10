@@ -1,10 +1,11 @@
 package com.hyundaiproject.messaging;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 final class MessageCatalog {
-    enum Page { MAIN, ADDITIONAL, TURN }
+    enum Page { HOME, MAIN, ADDITIONAL, TURN }
 
     record Preset(int number, String code, String text) {}
 
@@ -29,6 +30,7 @@ final class MessageCatalog {
 
     static List<Preset> presets(Page page) {
         return switch (page) {
+            case HOME -> Collections.emptyList();
             case MAIN -> MAIN;
             case ADDITIONAL -> ADDITIONAL;
             case TURN -> TURN;

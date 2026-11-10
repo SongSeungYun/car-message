@@ -14,8 +14,9 @@ import java.util.regex.Pattern;
 /** Coordinates independent outgoing and incoming states. Call UI events on the scheduler thread. */
 final class MessagingController implements AutoCloseable {
     private static final long SEND_TIMEOUT_MS = 8_000;
-    private static final long STATUS_MS = 1_300;
+    private static final long STATUS_MS = 3_000;
     private static final long CRITICAL_MS = 4_000;
+    private static final long CRITICAL_GLOW_MS = 650;
     private static final long NOTICE_MS = 3_000;
     private static final long VOICE_TIMEOUT_MS = 5_000;
     private static final int MAX_WAITING_ALERTS = 8;
@@ -47,7 +48,7 @@ final class MessagingController implements AutoCloseable {
     private Cancellation glowTimer = NONE;
     private Cancellation voiceTimer = NONE;
     private Cancellation request = NONE;
-    private Page page = Page.MAIN;
+    private Page page = Page.HOME;
     private Phase phase = Phase.IDLE;
     private Preset selected;
     private Incoming alert;
@@ -73,6 +74,17 @@ final class MessagingController implements AutoCloseable {
         clearVoice();
         page = next;
         publish();
+    }
+
+    void resetForDemo(Page startPage) {
+        request.cancel();
+        request = NONE;
+        alertTimer.cancel();
+        glowTimer.cancel();
+        waitingAlerts.clear();
+        alert = null;
+        alternateGlow = false;
+        resetSend(startPage);
     }
 
     void select(Preset preset) {
@@ -108,10 +120,11 @@ final class MessagingController implements AutoCloseable {
         request.cancel();
         request = NONE;
         publish();
-        phaseTimer = scheduler.after(STATUS_MS, result == Result.SUCCESS ? this::resetSend : this::openRetry);
+        phaseTimer = scheduler.after(STATUS_MS,
+                result == Result.SUCCESS ? () -> resetSend(Page.HOME) : this::openRetry);
     }
 
-    void openRetry() {
+    private void openRetry() {
         if (phase != Phase.FAILED) return;
         phaseTimer.cancel();
         clearVoice();
@@ -122,14 +135,18 @@ final class MessagingController implements AutoCloseable {
     boolean back() {
         if (alert != null) {
             dismissAlert();
-        } else if (phase == Phase.CONFIRM || phase == Phase.RETRY || phase == Phase.SENT || phase == Phase.FAILED) {
-            resetSend();
+        } else if (phase == Phase.SENT) {
+            resetSend(Page.HOME);
+        } else if (phase == Phase.CONFIRM || phase == Phase.FAILED || phase == Phase.RETRY) {
+            resetSend(page);
         } else if (phase == Phase.SENDING) {
             return true;
         } else if (voiceText != null) {
             stopListening();
-        } else if (page != Page.MAIN) {
+        } else if (page == Page.ADDITIONAL) {
             showPage(Page.MAIN);
+        } else if (page != Page.HOME) {
+            showPage(Page.HOME);
         } else {
             return false;
         }
@@ -137,14 +154,17 @@ final class MessagingController implements AutoCloseable {
     }
 
     void cancelConfirmation() {
-        if (alert == null && (phase == Phase.CONFIRM || phase == Phase.RETRY)) resetSend();
+        if (alert == null && (phase == Phase.CONFIRM || phase == Phase.RETRY)) {
+            resetSend(page);
+        }
     }
 
-    private void resetSend() {
+    private void resetSend(Page destination) {
         phaseTimer.cancel();
         clearVoice();
         selected = null;
         outgoing = null;
+        page = destination;
         phase = Phase.IDLE;
         publish();
     }
@@ -228,13 +248,14 @@ final class MessagingController implements AutoCloseable {
         if (incoming != null) {
             boolean critical = incoming.kind() == Incoming.Kind.CRITICAL;
             alertTimer = scheduler.after(critical ? CRITICAL_MS : NOTICE_MS, this::dismissAlert);
-            if (critical) {
-                glowTimer = scheduler.after(650, () -> {
-                    alternateGlow = true;
-                    publish();
-                });
-            }
+            if (critical) glowTimer = scheduler.after(CRITICAL_GLOW_MS, this::toggleAlertGlow);
         }
+        publish();
+    }
+
+    private void toggleAlertGlow() {
+        alternateGlow = !alternateGlow;
+        glowTimer = scheduler.after(CRITICAL_GLOW_MS, this::toggleAlertGlow);
         publish();
     }
 
