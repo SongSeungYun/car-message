@@ -269,10 +269,10 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
             val number = if (recognized) label(preset.number().toString(), u(128), navy, Gravity.START, BOLD)
                 else shadedLabel(preset.number().toString(), u(128), highlightColor = navy)
             place(tile, number, u(44), u(26), w - u(70), u(164))
-            val text = label(preset.text(), u(48).coerceAtLeast(sp(14f)), ink, Gravity.END or Gravity.CENTER_VERTICAL, BOLD)
+            val text = label(preset.text(), u(48).coerceAtLeast(sp(14f)), ink, weight = BOLD)
             text.setTextColor(messageTextColors)
             text.isDuplicateParentStateEnabled = true
-            place(tile, text, u(30), h - u(116), w - u(70), u(86))
+            placeCardCaption(tile, text, w, h)
         }
         action(tile, "${preset.number()}번 ${preset.text()}") { onSelect(preset) }
         return tile
@@ -303,15 +303,24 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
         val tile = FrameLayout(context)
         tile.background = RippleDrawable(ColorStateList.valueOf(0x30FFFFFF), rounded(navy, u(32)), null)
         tile.elevation = u(7)
-        val text = label(if (back) "이전" else "additional\nmessages", u(48), white,
-            if (back) Gravity.END or Gravity.BOTTOM else Gravity.START or Gravity.TOP, BOLD)
-        text.maxLines = 2
+        if (back) {
+            val text = label("이전", u(48).coerceAtLeast(sp(14f)), white, weight = BOLD)
+            placeCardCaption(tile, text, w, h)
+        } else {
+            val text = label("additional\nmessages", u(48), white, Gravity.START or Gravity.TOP, BOLD)
+            text.maxLines = 2
+            place(tile, text, u(53), u(51), w - u(106), u(114))
+        }
         val arrow = shadedLabel(if (back) "←" else "→", u(128))
         arrow.gravity = if (back) Gravity.START or Gravity.CENTER_VERTICAL else Gravity.END or Gravity.CENTER_VERTICAL
-        place(tile, text, u(53), if (back) h - u(115) else u(51), w - u(106), u(114))
         place(tile, arrow, u(46), if (back) u(17) else h - u(167), w - u(92), u(150))
         action(tile, if (back) "이전 메시지 목록" else "추가 메시지") { onPage(if (back) Page.MAIN else Page.ADDITIONAL) }
         return tile
+    }
+
+    private fun placeCardCaption(tile: FrameLayout, text: TextView, w: Float, h: Float) {
+        text.gravity = Gravity.END or Gravity.CENTER_VERTICAL
+        place(tile, text, u(30), h - u(116), w - u(70), u(86))
     }
 
     private fun confirmation(parent: FrameLayout, state: Screen, w: Float, h: Float) {
