@@ -19,7 +19,7 @@ A차 앱 ◀─ status ─ 중계 서버 ◀─ ack ─── B차 앱
 
 ```
 car-message/
-├── fe/                       Pleos Connect 앱 (Android, Kotlin, 패키지명 com.carmessage.app) — 앱 담당이 생성 예정
+├── fe/                       Pleos Connect 앱 (Android, Kotlin, 패키지명 com.hyundaiproject.messaging) — 앱 담당이 생성 예정
 ├── be/                       메시지 중계 서버 (Kotlin, Ktor)
 │   └── src/main/kotlin/carmessage/
 │       ├── Application.kt    서버 시작, /ws/{vehicleId} 접속 처리
@@ -28,9 +28,9 @@ car-message/
 ├── docs/
 │   ├── protocol.md           앱 ↔ 서버 규약 ← 앱 개발 전에 필독
 │   ├── messages.json         메시지 코드표 (코드 → 문구, 트리거)
-│   └── device-signals.md     앱 ↔ 차량 신호·맥 음성 브리지 (adb, STM32)
-├── bridge/                   맥 음성 브리지: STM32 버튼·음성 인식·읽기 (예정)
-├── firmware/                 STM32 핸들 버튼 (예정)
+│   └── device-signals.md     앱 ↔ 차량 신호·맥 음성 브리지 (adb, 아두이노)
+├── bridge/                   맥 음성 브리지: 아두이노 버튼·음성 인식·읽기 (예정)
+├── firmware/                 아두이노 핸들 버튼 (예정)
 ├── infra/                    서버 배포 (예정)
 └── apk/                      제출용 release APK
 ```
@@ -116,7 +116,7 @@ ws.send(JSON.stringify({ type: 'send', id: 'b-' + Date.now(), code: 'I_YIELD', t
 - `msg`를 받으면 화면에 띄운 직후 `ack`를 보낸다. **같은 메시지가 두 번 와도, Additional 수신을 꺼서 화면에 안 띄워도 ack는 보낸다** (화면엔 한 번만)
 - 끊기면 재접속한다 (1s → 2s → 4s … 최대 10s). "전송 중"이던 메시지는 **같은 id로** 다시 보낸다
 - 문구는 서버가 아니라 `messages.json`에서 꺼낸다
-- 앱 패키지명은 `com.carmessage.app`. 비상등·핸들 버튼·음성 신호는 [`docs/device-signals.md`](docs/device-signals.md)
+- 앱 패키지명은 `com.hyundaiproject.messaging`. 비상등·핸들 버튼·음성 신호는 [`docs/device-signals.md`](docs/device-signals.md)
 
 ## 협업 규칙
 

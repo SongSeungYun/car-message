@@ -1,16 +1,16 @@
-# 차량 신호·음성 연결 (앱 ↔ 에뮬레이터·STM32·맥)
+# 차량 신호·음성 연결 (앱 ↔ 에뮬레이터·아두이노·맥)
 
 서버 규약([`protocol.md`](protocol.md))과 별개로, 앱이 차량·핸들 버튼·음성과 주고받는 신호다.
-앱 패키지명은 `com.carmessage.app`. 아래 이름은 이 패키지명을 앞에 붙인다.
+앱 패키지명은 `com.hyundaiproject.messaging`. 아래 이름은 이 패키지명을 앞에 붙인다.
 
 ## 한눈에
 
 | 신호 | 방향 | 형식 |
 |---|---|---|
 | 방향지시등 | 차량 → 앱 | Vehicle SDK `registerTurnSignalState`, 값 `LEFT` / `RIGHT` / `OFF` |
-| 비상등 | 터미널(adb) → 앱 | broadcast `com.carmessage.app.HAZARD`, `state` = `ON` / `OFF` |
-| 핸들(말하기) 버튼 | STM32 → 맥 음성 브리지 → 앱 | broadcast `com.carmessage.app.PTT`, `state` = `DOWN` / `UP` |
-| 들은 말 | 맥 음성 브리지 → 앱 | broadcast `com.carmessage.app.VOICE_RESULT`, `text` = 들은 글자 |
+| 비상등 | 터미널(adb) → 앱 | broadcast `com.hyundaiproject.messaging.HAZARD`, `state` = `ON` / `OFF` |
+| 핸들(말하기) 버튼 | 아두이노 → 맥 음성 브리지 → 앱 | broadcast `com.hyundaiproject.messaging.PTT`, `state` = `DOWN` (버튼 누름 = 듣기 시작) |
+| 들은 말 | 맥 음성 브리지 → 앱 | broadcast `com.hyundaiproject.messaging.VOICE_RESULT`, `text` = 들은 글자 |
 | 음성 읽기 | 앱 → 맥 음성 브리지 | `POST http://10.0.2.2:8090/speak` |
 
 왜 이렇게 하나 (에뮬레이터 2.1.0, Vehicle SDK 2.3.2, STT·TTS 3.3.1에서 확인)
@@ -23,21 +23,22 @@
 ## adb broadcast (비상등·버튼·들은 말)
 
 ```
-adb -s emulator-5554 shell am broadcast -a com.carmessage.app.HAZARD -p com.carmessage.app --es state ON
-adb -s emulator-5554 shell am broadcast -a com.carmessage.app.PTT -p com.carmessage.app --es state DOWN
-adb -s emulator-5554 shell am broadcast -a com.carmessage.app.VOICE_RESULT -p com.carmessage.app --es text "출발합니다"
+adb -s emulator-5554 shell am broadcast -a com.hyundaiproject.messaging.HAZARD -p com.hyundaiproject.messaging --es state ON
+adb -s emulator-5554 shell am broadcast -a com.hyundaiproject.messaging.PTT -p com.hyundaiproject.messaging --es state DOWN
+adb -s emulator-5554 shell am broadcast -a com.hyundaiproject.messaging.VOICE_RESULT -p com.hyundaiproject.messaging --es text "출발합니다"
 ```
 
 - B차는 `emulator-5556`. 차가 한 대뿐인 노트북이면 `-s`는 생략해도 된다.
-- `-p com.carmessage.app`을 꼭 붙인다. Android 8 이상은 대상 앱을 지정하지 않은 broadcast를 매니페스트 리시버에 안 보낸다.
+- `-p com.hyundaiproject.messaging`을 꼭 붙인다. Android 8 이상은 대상 앱을 지정하지 않은 broadcast를 매니페스트 리시버에 안 보낸다.
 - 앱 쪽: 앱이 떠 있는 동안 리시버를 코드로 등록한다. adb(셸)에서 오는 신호라 exported로 등록해야 한다.
   ```kotlin
   ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_EXPORTED)
   ```
 - 앱은 신호가 어디서 왔는지 모른다. Vehicle SDK 콜백과 broadcast를 앱 안에서 같은 이벤트로 바꿔 쓴다.
-- `VOICE_RESULT`의 글자를 화면 후보 중 가장 비슷한 것에 연결하는 건 앱이 한다. 터치로 고른 것과 같은 "선택됨"으로 처리한다.
+- `VOICE_RESULT`의 글자로 후보를 고르는 건 앱이 한다. **1차 시연은 번호("1번 메시지 보내줘")로 고른다.** 문구("출발합니다")로 고르기는 다음 단계에서 추가한다. 고른 뒤는 터치로 고른 것과 같은 "선택됨"(확인창)으로 처리한다.
+- 버튼을 떼면 브리지는 `PTT UP`을 따로 보내지 않고 `VOICE_RESULT`만 보낸다. 앱은 `VOICE_RESULT`를 받으면 듣기를 끝낸다. (앱이 듣기를 먼저 끝내면 뒤따라온 결과를 버리기 때문)
 
-## STM32 → 맥 음성 브리지
+## 아두이노 → 맥 음성 브리지
 
 - USB 시리얼 115200bps, 한 줄에 이벤트 하나(`\n`으로 끝).
 - `BTN:DOWN`, `BTN:UP`. (`TURN:L`·`TURN:R`·`TURN:OFF`·`HAZARD:ON`·`HAZARD:OFF`는 예약, 지금은 안 씀)
@@ -47,7 +48,7 @@ adb -s emulator-5554 shell am broadcast -a com.carmessage.app.VOICE_RESULT -p co
 노트북마다 하나씩, 그 노트북의 에뮬레이터·마이크·스피커를 쓴다.
 
 1. `BTN:DOWN` → `PTT DOWN` broadcast, 마이크 녹음 시작
-2. `BTN:UP` → `PTT UP` broadcast, 녹음 끝, 한국어 인식 → `VOICE_RESULT` broadcast
+2. `BTN:UP` → 녹음 끝, 한국어 인식 → `VOICE_RESULT` broadcast (`PTT UP`은 보내지 않음)
 3. `POST /speak` 받으면 그 노트북 스피커로 한국어로 읽는다
 
 `/speak` 형식
