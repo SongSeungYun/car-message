@@ -15,7 +15,6 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RenderEffect
 import android.graphics.Shader
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
@@ -39,7 +38,6 @@ import com.hyundaiproject.messaging.MessagingController.Screen
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-private const val REGULAR = 400
 private const val MEDIUM = 500
 private const val SEMI_BOLD = 600
 private const val BOLD = 700
@@ -145,14 +143,11 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
         val headerInset = left + u(50)
         val logoWidth = u(300).coerceAtLeast(dp(152f)).coerceAtMost(w * 0.58f)
         val logoHeight = u(57).coerceAtLeast(dp(24f))
-        val logoPlaceholder = label("로고 이미지 파일 들어갈 자리입니다", u(20).coerceAtLeast(sp(9f)),
-            Color.BLACK, Gravity.START or Gravity.CENTER_VERTICAL, REGULAR).apply {
-            background = ColorDrawable(muted)
-            val textWidth = paint.measureText(text.toString())
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize * min(1f, logoWidth / textWidth))
+        val logo = bitmap("car-talk-logo").apply {
+            contentDescription = "Car Talk"
             importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         }
-        place(parent, logoPlaceholder, headerInset, h * (103.45f / 1194f), logoWidth, logoHeight)
+        place(parent, logo, headerInset, h * (103.45f / 1194f), logoWidth, logoHeight)
         val exitIconSize = u(48).coerceAtLeast(dp(22f))
         place(parent, bitmap("exit-to-app"), w - headerInset - exitIconSize,
             h * (107.95f / 1194f), exitIconSize, exitIconSize)
