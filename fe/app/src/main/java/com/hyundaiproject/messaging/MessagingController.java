@@ -18,7 +18,8 @@ final class MessagingController implements AutoCloseable {
     private static final long CRITICAL_MS = 4_000;
     private static final long CRITICAL_GLOW_MS = 650;
     private static final long NOTICE_MS = 3_000;
-    private static final long VOICE_TIMEOUT_MS = 5_000;
+    // 핸들 버튼을 누른 채 말하는 시간 + 맥 음성 브리지 인식 시간. 짧으면 늦게 온 VOICE_RESULT를 버린다
+    private static final long VOICE_TIMEOUT_MS = 15_000;
     private static final int MAX_WAITING_ALERTS = 8;
     private static final Pattern NUMBERED_COMMAND = Pattern.compile(
             "^(10|[1-9])\\s*번\\s*(?:(?:메시지|메세지)\\s*)?보내\\s*줘[.!]?$"

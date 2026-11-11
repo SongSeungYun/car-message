@@ -32,4 +32,5 @@ tasks.withType<JavaCompile>().configureEach {
 
 dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("ai.pleos.playground:Vehicle:2.3.2") // 방향지시등
 }

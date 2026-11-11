@@ -15,6 +15,7 @@ class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var controller: MessagingController
     private lateinit var gateway: MessageGateway
+    private lateinit var signals: CarSignals
     private val demo get() = gateway as? DemoMessageGateway
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,6 +34,23 @@ class MainActivity : Activity() {
         board.onDemo = ::showDemoMenu
         setContentView(board)
         board.render(controller.screen())
+        signals = CarSignals(this, ::onTurnSignal, ::onHazard, controller::startListening, controller::recognize)
+        signals.start()
+    }
+
+    // 신호가 켜지면 해당 후보 목록, 꺼지면 그 목록에 머물러 있을 때만 홈으로. 전송·경고 중이면 controller가 무시한다
+    private fun onTurnSignal(state: String) {
+        when (state) {
+            "LEFT" -> controller.showPage(Page.TURN)
+            "OFF" -> if (controller.screen().page() == Page.TURN) controller.showPage(Page.HOME)
+            // RIGHT: 우측 후보 화면이 아직 없다 (1차 시연은 좌측만)
+        }
+    }
+
+    private fun onHazard(on: Boolean) {
+        val page = controller.screen().page()
+        if (on) controller.showPage(Page.MAIN)
+        else if (page == Page.MAIN || page == Page.ADDITIONAL) controller.showPage(Page.HOME)
     }
 
     private fun showDemoMenu(anchor: View) {
@@ -83,12 +101,14 @@ class MainActivity : Activity() {
     private fun createGateway(): MessageGateway {
         val prefs = getSharedPreferences("config", MODE_PRIVATE)
         prefs.edit().apply {
-            for (key in listOf("car", "server")) intent.getStringExtra(key)?.let { putString(key, it) }
+            for (key in listOf("car", "server", "bridge")) intent.getStringExtra(key)?.let { putString(key, it) }
         }.apply()
         val server = prefs.getString("server", null) ?: "ws://10.0.2.2:8080"
         val car = prefs.getString("car", null) ?: "A"
+        val bridge = prefs.getString("bridge", null) ?: "http://10.0.2.2:8090" // 맥 음성 브리지
         Toast.makeText(this, if (server == "demo") "시연 모드 (서버 없음)" else "${car}차 · $server", Toast.LENGTH_LONG).show()
-        return if (server == "demo") DemoMessageGateway(handler) else WebSocketMessageGateway(server, car)
+        if (server == "demo") return DemoMessageGateway(handler)
+        return WebSocketMessageGateway(server, car).apply { onReceived = HostSpeaker(bridge, car)::speak }
     }
 
     private fun setDemoResult(result: Result): Boolean {
@@ -103,6 +123,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        signals.stop()
         controller.close()
         (gateway as? WebSocketMessageGateway)?.close()
         handler.removeCallbacksAndMessages(null)
