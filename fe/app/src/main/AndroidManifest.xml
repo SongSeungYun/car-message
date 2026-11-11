@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- usesCleartextTraffic: 중계 서버 ws://, 맥 음성 브리지 http://10.0.2.2 -->
     <application
         android:allowBackup="false"
+        android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="false"
         android:label="차량 메시지 시연"
         android:theme="@style/AppTheme">

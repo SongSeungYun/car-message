@@ -14,11 +14,12 @@ import com.hyundaiproject.messaging.MessageGateway.Result
 class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var controller: MessagingController
-    private lateinit var gateway: DemoMessageGateway
+    private lateinit var gateway: MessageGateway
+    private val demo get() = gateway as? DemoMessageGateway
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        gateway = DemoMessageGateway(handler)
+        gateway = createGateway()
         val board = MessageBoard(this)
         controller = MessagingController(gateway, { delay, task ->
             handler.postDelayed(task, delay)
@@ -45,10 +46,12 @@ class MainActivity : Activity() {
             restartDemo(Page.TURN)
             true
         }
-        menu.add("Flow 3 · 경고 수신").setOnMenuItemClickListener {
-            restartDemo(Page.MAIN)
-            gateway.emit(Kind.CRITICAL)
-            true
+        demo?.let { demo ->
+            menu.add("Flow 3 · 경고 수신").setOnMenuItemClickListener {
+                restartDemo(Page.MAIN)
+                demo.emit(Kind.CRITICAL)
+                true
+            }
         }
         menu.add("Flow 4 · 음성 인식 시연").setOnMenuItemClickListener {
             restartDemo(Page.MAIN)
@@ -56,8 +59,10 @@ class MainActivity : Activity() {
             handler.postDelayed({ controller.recognize("1번 메시지 보내줘") }, 750)
             true
         }
-        menu.add("Flow 5 · 다음 전송 결과 - 성공").setOnMenuItemClickListener { setDemoResult(Result.SUCCESS) }
-        menu.add("Flow 6 · 다음 전송 결과 - 실패").setOnMenuItemClickListener { setDemoResult(Result.FAILURE) }
+        if (demo != null) {
+            menu.add("Flow 5 · 다음 전송 결과 - 성공").setOnMenuItemClickListener { setDemoResult(Result.SUCCESS) }
+            menu.add("Flow 6 · 다음 전송 결과 - 실패").setOnMenuItemClickListener { setDemoResult(Result.FAILURE) }
+        }
         menu.add("Flow 7 · mainpage").setOnMenuItemClickListener {
             restartDemo(Page.HOME)
             true
@@ -70,8 +75,24 @@ class MainActivity : Activity() {
         controller.resetForDemo(startPage)
     }
 
+    /**
+     * 설정값은 실행할 때 넘기면 저장된다. 예) B차, 맥 서버 18080 포트:
+     * adb -s emulator-5556 shell am start -S -n com.hyundaiproject.messaging/.MainActivity --es car B --es server ws://10.0.2.2:18080
+     * server를 demo로 주면 서버 없이 가짜 응답으로 화면만 시연한다.
+     */
+    private fun createGateway(): MessageGateway {
+        val prefs = getSharedPreferences("config", MODE_PRIVATE)
+        prefs.edit().apply {
+            for (key in listOf("car", "server")) intent.getStringExtra(key)?.let { putString(key, it) }
+        }.apply()
+        val server = prefs.getString("server", null) ?: "ws://10.0.2.2:8080"
+        val car = prefs.getString("car", null) ?: "A"
+        Toast.makeText(this, if (server == "demo") "시연 모드 (서버 없음)" else "${car}차 · $server", Toast.LENGTH_LONG).show()
+        return if (server == "demo") DemoMessageGateway(handler) else WebSocketMessageGateway(server, car)
+    }
+
     private fun setDemoResult(result: Result): Boolean {
-        gateway.nextResult = result
+        demo?.nextResult = result
         Toast.makeText(this, if (result == Result.SUCCESS) "다음 전송: 성공" else "다음 전송: 실패", Toast.LENGTH_SHORT).show()
         return true
     }
@@ -83,6 +104,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         controller.close()
+        (gateway as? WebSocketMessageGateway)?.close()
         handler.removeCallbacksAndMessages(null)
         super.onDestroy()
     }

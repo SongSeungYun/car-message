@@ -22,9 +22,14 @@ android {
 }
 
 kotlin {
-    jvmToolchain(17)
+    // 툴체인(JDK 17 고정) 대신 결과물만 17로: Gradle을 돌리는 JDK가 17이든 21이든 빌드된다
+    compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
+}
+
+dependencies {
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
