@@ -10,7 +10,6 @@ import android.widget.Toast
 import com.hyundaiproject.messaging.MessageCatalog.Page
 import com.hyundaiproject.messaging.MessageGateway.Incoming.Kind
 import com.hyundaiproject.messaging.MessageGateway.Result
-import com.hyundaiproject.messaging.MessagingController.Phase
 
 class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
@@ -36,50 +35,38 @@ class MainActivity : Activity() {
     }
 
     private fun showDemoMenu(anchor: View) {
-        val screen = controller.screen()
-        val canSelectMessage = screen.phase() == Phase.IDLE && screen.alert() == null
         val popup = PopupMenu(this, anchor)
         val menu = popup.menu
-        menu.add("Flow 1 · 메시지 송신").setOnMenuItemClickListener {
+        menu.add("Flow 1 · 비상등 작동 중").setOnMenuItemClickListener {
+            restartDemo(Page.MAIN)
+            true
+        }
+        menu.add("Flow 2 · 좌회전 방향지시등 작동 중").setOnMenuItemClickListener {
+            restartDemo(Page.TURN)
+            true
+        }
+        menu.add("Flow 3 · 경고 수신").setOnMenuItemClickListener {
+            restartDemo(Page.MAIN)
+            gateway.emit(Kind.CRITICAL)
+            true
+        }
+        menu.add("Flow 4 · 음성 인식 시연").setOnMenuItemClickListener {
+            restartDemo(Page.MAIN)
+            controller.startListening()
+            handler.postDelayed({ controller.recognize("1번 메시지 보내줘") }, 750)
+            true
+        }
+        menu.add("Flow 5 · 다음 전송 결과 - 성공").setOnMenuItemClickListener { setDemoResult(Result.SUCCESS) }
+        menu.add("Flow 6 · 다음 전송 결과 - 실패").setOnMenuItemClickListener { setDemoResult(Result.FAILURE) }
+        menu.add("Flow 7 · mainpage").setOnMenuItemClickListener {
             restartDemo(Page.HOME)
             true
         }
-        menu.add("Flow 2 · 경고 수신").setOnMenuItemClickListener {
-            showDemoAlert(Kind.CRITICAL)
-            true
-        }
-        menu.add("Flow 3 · 일반 알림 수신").setOnMenuItemClickListener {
-            showDemoAlert(Kind.NOTICE)
-            true
-        }
-        if (canSelectMessage) {
-            menu.add("음성 인식 시연").setOnMenuItemClickListener {
-                val number = if (screen.page() == Page.ADDITIONAL) 6 else 1
-                controller.startListening()
-                handler.postDelayed({ controller.recognize("${number}번 메시지 보내줘") }, 750)
-                true
-            }
-        }
-        if (screen.phase() == Phase.FAILED && screen.alert() == null) {
-            menu.add("음성 재전송 시연").setOnMenuItemClickListener {
-                controller.startListening()
-                handler.postDelayed({ controller.recognize("재전송해줘") }, 750)
-                true
-            }
-        }
-        menu.add("다음 전송 결과 · 성공").setOnMenuItemClickListener { setDemoResult(Result.SUCCESS) }
-        menu.add("다음 전송 결과 · 실패").setOnMenuItemClickListener { setDemoResult(Result.FAILURE) }
         popup.show()
-    }
-
-    private fun showDemoAlert(kind: Kind) {
-        restartDemo(Page.MAIN)
-        gateway.emit(kind)
     }
 
     private fun restartDemo(startPage: Page) {
         handler.removeCallbacksAndMessages(null)
-        gateway.nextResult = Result.SUCCESS
         controller.resetForDemo(startPage)
     }
 

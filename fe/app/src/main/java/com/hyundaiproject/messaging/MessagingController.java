@@ -121,7 +121,7 @@ final class MessagingController implements AutoCloseable {
         request = NONE;
         publish();
         phaseTimer = scheduler.after(STATUS_MS,
-                result == Result.SUCCESS ? () -> resetSend(Page.HOME) : this::openRetry);
+                result == Result.SUCCESS ? () -> resetSend(page) : this::openRetry);
     }
 
     private void openRetry() {
@@ -135,9 +135,7 @@ final class MessagingController implements AutoCloseable {
     boolean back() {
         if (alert != null) {
             dismissAlert();
-        } else if (phase == Phase.SENT) {
-            resetSend(Page.HOME);
-        } else if (phase == Phase.CONFIRM || phase == Phase.FAILED || phase == Phase.RETRY) {
+        } else if (phase == Phase.SENT || phase == Phase.CONFIRM || phase == Phase.FAILED || phase == Phase.RETRY) {
             resetSend(page);
         } else if (phase == Phase.SENDING) {
             return true;
@@ -145,8 +143,6 @@ final class MessagingController implements AutoCloseable {
             stopListening();
         } else if (page == Page.ADDITIONAL) {
             showPage(Page.MAIN);
-        } else if (page != Page.HOME) {
-            showPage(Page.HOME);
         } else {
             return false;
         }

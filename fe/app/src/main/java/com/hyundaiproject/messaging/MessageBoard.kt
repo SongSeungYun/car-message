@@ -162,12 +162,11 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
         }
         val gap = u(25).roundToInt()
         val entries = listOf(
-            "principal\nmessages" to Page.MAIN,
-            // The second home card opens the turn-signal list in the prototype.
-            "additional\nmessages" to Page.TURN,
-            "설정" to null,
+            "principal\nmessages",
+            "additional\nmessages",
+            "설정",
         )
-        entries.forEachIndexed { index, (text, destination) ->
+        entries.forEachIndexed { index, text ->
             val params = if (portrait) {
                 LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f)
             } else {
@@ -176,21 +175,19 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
             if (index > 0) {
                 if (portrait) params.topMargin = gap else params.leftMargin = gap
             }
-            cards.addView(homeTile(text, destination, portrait), params)
+            cards.addView(homeTile(text, messageCard = index < 2, primary = index == 0, portrait = portrait), params)
         }
         place(parent, cards, left, top, w - 2 * left, h * (930f / 1194f))
     }
 
-    private fun homeTile(text: String, destination: Page?, portrait: Boolean): View {
+    private fun homeTile(text: String, messageCard: Boolean, primary: Boolean, portrait: Boolean): View {
         val tile = FrameLayout(context)
-        val active = destination != null
-        val primary = destination == Page.MAIN
-        val surface = rounded(if (active) navy else muted, u(32), hairline)
-        tile.background = if (active) RippleDrawable(ColorStateList.valueOf(0x30FFFFFF), surface, null) else surface
+        tile.background = rounded(if (messageCard) navy else muted, u(32), hairline)
         val titleGravity = Gravity.START or (if (portrait) Gravity.CENTER_VERTICAL else Gravity.TOP)
-        val title = label(text, u(48).coerceAtLeast(sp(14f)), if (active) white else Color.BLACK, titleGravity, BOLD)
+        val title = label(text, u(48).coerceAtLeast(sp(14f)), if (messageCard) white else Color.BLACK, titleGravity, BOLD)
         title.maxLines = 2
-        val arrow = if (active) shadedLabel("→", u(128)) else label("→", u(128), Color.BLACK, weight = BOLD)
+        title.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+        val arrow = if (messageCard) shadedLabel("→", u(128)) else label("→", u(128), Color.BLACK, weight = BOLD)
         arrow.gravity = Gravity.CENTER
 
         val titleHeight = if (portrait) LayoutParams.MATCH_PARENT else u(140).roundToInt()
@@ -204,11 +201,6 @@ internal class MessageBoard(context: Context) : FrameLayout(context) {
             rightMargin = u(35).roundToInt()
             if (!portrait) bottomMargin = u(20).roundToInt()
         })
-        if (destination != null) {
-            action(tile, text.replace('\n', ' ')) { onPage(destination) }
-        } else {
-            title.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
-        }
         return tile
     }
 
