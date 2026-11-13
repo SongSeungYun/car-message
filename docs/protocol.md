@@ -1,4 +1,4 @@
-# Car Message 앱 ↔ 서버 규약 (v1)
+# Car Talk 앱 ↔ 서버 규약 (v1)
 
 앱(A차·B차)은 중계 서버와 WebSocket 하나로 연결된다. 서버는 메시지 **코드만** 전달하고,
 문구·등급(principal/additional)·TTS 문장은 앱이 [`messages.json`](messages.json)에서 꺼낸다.

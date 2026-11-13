@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Car Message 맥 음성 브리지.
+"""Car Talk 맥 음성 브리지.
 
 하는 일 (docs/device-signals.md 기준)
   1. 핸들 버튼(아두이노 USB 시리얼 `BTN:DOWN` / `BTN:UP`) 또는 키보드 Enter를 읽는다.
@@ -358,7 +358,7 @@ def check_environment(args) -> int:
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description="Car Message 맥 음성 브리지")
+    p = argparse.ArgumentParser(description="Car Talk 맥 음성 브리지")
     p.add_argument("--serial-port", default="auto",
                    help="아두이노 포트. auto(기본) | /dev/cu.usbmodemXXXX | none")
     p.add_argument("--baud", type=int, default=115200)

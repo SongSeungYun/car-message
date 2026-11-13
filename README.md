@@ -1,4 +1,4 @@
-# Car Message
+# Car Talk
 
 깜빡이 뒤에 숨은 의도를, 한 문장의 메시지로.
 방향지시등·비상등·메시지 버튼 조작에 맞춰 정형 메시지를 고르면, 주변 차량 앱에 화면과 음성으로 전달되는 Pleos Connect 앱.
@@ -18,7 +18,7 @@ A차 앱 ◀─ status ─ 중계 서버 ◀─ ack ─── B차 앱
 ## 폴더 구조
 
 ```
-car-message/
+car-talk/
 ├── fe/                       Pleos Connect 앱 (Android, Kotlin·Java, 패키지명 com.hyundaiproject.messaging)
 │   └── app/src/main/java/com/hyundaiproject/messaging/
 │       ├── MainActivity.kt               시작점, 설정값(차 ID·서버 주소), 차량 신호 → 화면
@@ -68,11 +68,11 @@ Gradle·Kotlin·Ktor는 따로 설치하지 않는다. `./gradlew`가 처음 실
 ### 1. 받기
 
 ```bash
-git clone git@github.com:SongSeungYun/car-message.git
-cd car-message
+git clone git@github.com:SongSeungYun/car-talk.git
+cd car-talk
 ```
 
-SSH 키가 없으면 `https://github.com/SongSeungYun/car-message.git`로 받는다.
+SSH 키가 없으면 `https://github.com/SongSeungYun/car-talk.git`로 받는다.
 디자인(Figma)·기획 문서 링크는 공개 저장소에 두지 않으니 팀 채널에서 받는다.
 
 ### 2. 서버 띄우기

@@ -1,4 +1,4 @@
-// Car Message 핸들 버튼 (아두이노)
+// Car Talk 핸들 버튼 (아두이노)
 // 버튼 한쪽 다리는 D2, 다른 쪽은 GND. 내부 풀업을 쓰므로 저항이 필요 없다.
 // 누르면 "BTN:DOWN", 떼면 "BTN:UP" 한 줄씩 보낸다 (115200 bps). docs/device-signals.md 참고.
 

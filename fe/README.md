@@ -1,4 +1,4 @@
-# 차량 메시지 시연 앱
+# Car Talk 앱
 
 현대차 공모전의 차량 간 송신 화면과 수신 알림을 Kotlin Android UI와 Java 상태 처리 코드로 구현한 프로젝트입니다. [Figma 시안](https://www.figma.com/design/JL8VTuKsb84VYhsgHhTJP0/HyundaiProject2026?node-id=97-4538)
 
@@ -6,7 +6,7 @@
 
 1. `app/build/outputs/apk/debug/app-debug.apk`를 Android 9 이상 휴대폰이나 태블릿에 복사합니다.
 2. 기기의 파일 앱에서 APK를 열어 설치합니다. 설치 권한 안내가 뜨면 APK를 연 앱에 설치 권한을 허용합니다.
-3. 앱 목록에서 `차량 메시지 시연`을 열고 오른쪽 위 `시연 ⋮`에서 확인할 Flow를 선택합니다.
+3. 앱 목록에서 `Car Talk`을 열고 오른쪽 위 `시연 ⋮`에서 확인할 Flow를 선택합니다.
 
 PC에서는 Android Studio의 Device Manager에서 가상 기기를 실행하고, 에뮬레이터 창에 APK를 끌어 놓아 설치할 수 있습니다. 프로젝트를 수정하며 확인하려면 Android Studio에서 이 `fe` 폴더를 열고 Gradle 동기화 후 `app`과 실행 기기를 선택해 Run을 누릅니다.
 
