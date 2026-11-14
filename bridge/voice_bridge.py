@@ -33,8 +33,8 @@ DEFAULT_PACKAGE = "com.hyundaiproject.messaging"
 SAMPLE_RATE = 16_000
 MIN_AUDIO_SEC = 0.3
 MAX_SPEAK_CHARS = 200
-# fe/MessagingController VOICE_TIMEOUT_MS: 앱은 PTT DOWN부터 5초 뒤 듣기를 끝내고 늦은 결과는 버린다.
-APP_LISTEN_SEC = 5
+# fe/MessagingController VOICE_TIMEOUT_MS: 앱은 PTT DOWN부터 15초 뒤 듣기를 끝내고 늦은 결과는 버린다.
+APP_LISTEN_SEC = 15
 
 # 인식 결과를 앱이 알아듣는 문장("N번 메시지 보내줘")으로 맞춘다.
 # 앱(fe/MessagingController)은 숫자와 정확한 문형만 받기 때문이다.
